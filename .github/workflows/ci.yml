@@ -42,7 +42,7 @@ jobs:
   sonarcloud:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: secrets.SONAR_TOKEN != ''
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v3
 
