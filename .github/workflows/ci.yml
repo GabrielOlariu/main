@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Setup .NET 6 SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run tests & collect coverage
+        run: |
+          dotnet test BPCalculator.UnitTests \
+            --no-build --configuration Release \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=cobertura
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: '**/coverage.cobertura.xml'
+
+  sonarcloud:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: secrets.SONAR_TOKEN != ''
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET 6 SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v1
+        with:
+          projectBaseDir: .
+          extraProperties: |
+            sonar.organization=YOUR_SONAR_ORG
+            sonar.projectKey=YOUR_PROJECT_KEY
+            sonar.cs.opencover.reportsPaths=**/coverage.cobertura.xml
+
+  dependency-check:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download OWASP Dependency-Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.1/dependency-check-8.4.1-release.zip
+          unzip dependency-check-8.4.1-release.zip -d dc
+
+      - name: Run Dependency-Check
+        run: |
+          dc/dependency-check/bin/dependency-check.sh \
+            --project "BPCalculator" \
+            --scan . \
+            --format ALL \
+            --out dependency-check-report
+
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-report
+          path: dependency-check-report/
