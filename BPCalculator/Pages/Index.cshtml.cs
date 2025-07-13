@@ -1,30 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;            // ← for [BindProperty]
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
-// page model
+using BPCalculator.Core;                  // ← for your BloodPressure class
 
 namespace BPCalculator.Pages
 {
-    public class BloodPressureModel : PageModel
+    public class IndexModel : PageModel
     {
-        [BindProperty]                              // bound on POST
-        public BloodPressure BP { get; set; }
+        [BindProperty]
+        public int Systolic { get; set; }
 
-        // setup initial data
-        public void OnGet()
-        {
-            BP = new BloodPressure() { Systolic = 100, Diastolic = 60 };
-        }
+        [BindProperty]
+        public int Diastolic { get; set; }
 
-        // POST, validate
-        public IActionResult OnPost()
+        public string Category { get; private set; }
+
+        public void OnGet() { }
+
+        public void OnPost()
         {
-            // extra validation
-            if (!(BP.Systolic > BP.Diastolic))
-            {
-                ModelState.AddModelError("", "Systolic must be greater than Diastolic");
-            }
-            return Page();
+            var bp = new BloodPressure { Systolic = Systolic, Diastolic = Diastolic };
+            Category = bp.CategoryDisplay;
         }
     }
 }
